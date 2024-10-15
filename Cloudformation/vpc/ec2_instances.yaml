@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Tạo EC2 Instances trong Public và Private Subnet
+
+Parameters:
+  VPCId:
+    Type: String
+  UserIp:
+    Type: String
+  KeyName:
+    Type: String
+  PrivateSubnetId:
+    Type: String
+  PublicSubnetId:
+    Type: String
+  
+
+Resources:
+  # Tạo Public EC2 Instance
+  PublicEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-06b21ccaeff8cd686 
+      SubnetId: !Ref PublicSubnetId
+      SecurityGroupIds:
+        - !Ref PublicEC2SecurityGroup
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Name
+          Value: MyPublicEC2Instance
+
+  # Tạo Security Group cho Public EC2 Instance
+  PublicEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group cho Public EC2
+      VpcId: !Ref VPCId  # Thay thế với ID VPC hợp lệ
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref UserIp  # Cho phép SSH từ IP cụ thể
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0  # Cho phép tất cả outbound traffic
+
+  # Tạo Private EC2 Instance
+  PrivateEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-06b21ccaeff8cd686  # Thay thế bằng AMI ID hợp lệ
+      SubnetId: !Ref PrivateSubnetId
+      SecurityGroupIds:
+        - !Ref PrivateEC2SecurityGroup
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Name
+          Value: MyPrivateEC2Instance
+
+  # Tạo Security Group cho Private EC2 Instance
+  PrivateEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group cho Private EC2
+      VpcId: !Ref VPCId  # Thay thế với ID VPC hợp lệ
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref PublicEC2SecurityGroup  # Chỉ cho phép từ Public EC2
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0  # Cho phép tất cả outbound traffic
+
+Outputs:
+  PublicEC2InstanceId:
+    Description: ID của Public EC2 Instance
+    Value: !Ref PublicEC2Instance
+  PrivateEC2InstanceId:
+    Description: ID của Private EC2 Instance
+    Value: !Ref PrivateEC2Instance
